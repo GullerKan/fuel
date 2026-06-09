@@ -66,10 +66,7 @@ const allFuelTypes = [
 ];
 
 function fetchFuelData() {
-  const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-const targetUrl = 'https://fuel.sevtech.org/fuel/qr/fuel-types';
-
-fetch(proxyUrl + targetUrl)
+  fetch('https://fuel.sevtech.org/fuel/qr/fuel-types')
     .then(res => res.json())
     .then(data => {
       if (data.status !== "ok" || !data.data) {
