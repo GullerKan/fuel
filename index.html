@@ -21,7 +21,6 @@
             padding: 24px;
         }
 
-        /* основная карточка */
         .dashboard {
             max-width: 1300px;
             width: 100%;
@@ -30,10 +29,8 @@
             border-radius: 56px;
             padding: 28px 32px 40px;
             box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.6);
-            transition: all 0.2s ease;
         }
 
-        /* шапка: заголовок + панель управления */
         .header {
             display: flex;
             flex-wrap: wrap;
@@ -127,17 +124,14 @@
             opacity: 0.7;
         }
 
-        /* сетка плашек  */
         .fuel-grid {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 28px;
             margin: 40px 0 30px;
-            transition: all 0.2s;
         }
 
-        /* карточка топлива */
         .fuel-card {
             flex: 1;
             min-width: 160px;
@@ -147,20 +141,17 @@
             padding: 24px 12px 20px;
             text-align: center;
             box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.2);
-            transition: all 0.2s ease;
             cursor: default;
             border: 1px solid rgba(255,255,255,0.4);
             backdrop-filter: blur(2px);
         }
 
-        /* зелёная тема (в наличии) */
         .fuel-card.in-stock {
             background: linear-gradient(145deg, #d9f0da, #c2e2c3);
             border-bottom: 5px solid #2c7840;
             color: #1a4a2a;
         }
 
-        /* красная тема (закончился) */
         .fuel-card.out-of-stock {
             background: linear-gradient(145deg, #ffe1de, #ffcdc8);
             border-bottom: 5px solid #bc3f2e;
@@ -182,10 +173,8 @@
             display: inline-block;
             padding: 5px 14px;
             border-radius: 50px;
-            backdrop-filter: blur(2px);
         }
 
-        /* сообщение об отсутствии кодов */
         .out-of-stock-message {
             background: #fff3e0;
             border-left: 8px solid #e67e22;
@@ -197,14 +186,13 @@
             font-weight: 500;
             color: #a5571a;
             box-shadow: 0 6px 14px rgba(0,0,0,0.03);
-            backdrop-filter: blur(4px);
+            white-space: pre-wrap;
         }
 
         .hidden {
             display: none;
         }
 
-        /* лоадер */
         .loader {
             display: flex;
             justify-content: center;
@@ -238,19 +226,10 @@
         }
 
         @media (max-width: 700px) {
-            .dashboard {
-                padding: 20px;
-            }
-            .fuel-card {
-                min-width: 130px;
-            }
-            .fuel-title {
-                font-size: 1.5rem;
-            }
-            .control-panel {
-                width: 100%;
-                justify-content: center;
-            }
+            .dashboard { padding: 20px; }
+            .fuel-card { min-width: 130px; }
+            .fuel-title { font-size: 1.5rem; }
+            .control-panel { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -258,7 +237,7 @@
 
 <div class="dashboard">
     <div class="header">
-        <h1>Наличие топлива · QR-коды</h1>
+        <h1>Наличие QR-кодов на топливо</h1>
         <div class="control-panel">
             <div class="refresh-rate">
                 <label>🔄 Обновлять каждые</label>
@@ -272,13 +251,10 @@
         </div>
     </div>
 
-    <!-- контейнер для плашек (5 видов топлива) -->
     <div id="fuelGridContainer" class="fuel-grid">
-        <!-- динамически заполняется JS -->
         <div class="loader"><div class="spinner"></div><span>Загрузка данных о топливе...</span></div>
     </div>
 
-    <!-- блок для out_of_stock_message (если fuel_types пустой) -->
     <div id="outOfStockMsgContainer" class="out-of-stock-message hidden"></div>
 
     <footer>
@@ -287,7 +263,6 @@
 </div>
 
 <script>
-    // эталонный список всех 5 типов топлива (согласно заданию)
     const ALL_FUEL_TYPES = [
         { code: "dt", title: "ДТ" },
         { code: "dt_plus", title: "ДТ+" },
@@ -296,57 +271,39 @@
         { code: "a95_plus", title: "A95+" }
     ];
 
-    // глобальные переменные
     let currentIntervalId = null;
     let isFetching = false;
 
-    // DOM элементы
     const fuelGridContainer = document.getElementById('fuelGridContainer');
     const outOfStockMsgDiv = document.getElementById('outOfStockMsgContainer');
     const statusTextSpan = document.getElementById('statusText');
     const intervalInput = document.getElementById('intervalInput');
 
-    // --- вспомогательные функции отрисовки ---
     function renderFuelCards(availableCodesSet) {
-        // availableCodesSet — Set с кодами видов топлива, которые пришли с бэка (не пустой fuel_types)
-        // строим все 5 карточек
         const fragment = document.createDocumentFragment();
-        
         for (let fuel of ALL_FUEL_TYPES) {
             const isAvailable = availableCodesSet.has(fuel.code);
             const card = document.createElement('div');
             card.className = `fuel-card ${isAvailable ? 'in-stock' : 'out-of-stock'}`;
-            
             const titleSpan = document.createElement('div');
             titleSpan.className = 'fuel-title';
             titleSpan.textContent = fuel.title;
-            
             const statusSpan = document.createElement('div');
             statusSpan.className = 'fuel-status';
-            if (isAvailable) {
-                statusSpan.textContent = '✅ В наличии';
-                statusSpan.style.background = '#2e7d3230';
-            } else {
-                statusSpan.textContent = '❌ Закончился';
-                statusSpan.style.background = '#c73f1f30';
-            }
-            
+            statusSpan.textContent = isAvailable ? '✅ В наличии' : '❌ Закончился';
+            statusSpan.style.background = isAvailable ? '#2e7d3230' : '#c73f1f30';
             card.appendChild(titleSpan);
             card.appendChild(statusSpan);
             fragment.appendChild(card);
         }
-        
-        // очищаем и добавляем новые карточки
         fuelGridContainer.innerHTML = '';
         fuelGridContainer.appendChild(fragment);
     }
     
-    function showEmptyState(outOfStockMessage) {
-        // прячем плашки (очищаем контейнер) и показываем сообщение out_of_stock_message
+    function showEmptyState(message) {
         fuelGridContainer.innerHTML = '';
-        // если сообщение есть — отображаем, иначе стандартное
-        const finalMsg = outOfStockMessage && outOfStockMessage.trim() !== "" 
-            ? outOfStockMessage 
+        const finalMsg = message && message.trim() !== "" 
+            ? message 
             : "На данный момент QR-коды на топливо отсутствуют. Информация скоро обновится.";
         outOfStockMsgDiv.textContent = finalMsg;
         outOfStockMsgDiv.classList.remove('hidden');
@@ -358,9 +315,7 @@
     }
     
     function showLoadingState() {
-        // отображаем скелетон/лоадер в контейнере плашек (если нет данных)
         fuelGridContainer.innerHTML = `<div class="loader"><div class="spinner"></div><span>Обновление данных...</span></div>`;
-        // также скрываем сообщение об отсутствии, т.к. идёт загрузка
         outOfStockMsgDiv.classList.add('hidden');
         statusTextSpan.textContent = 'загрузка...';
     }
@@ -377,13 +332,10 @@
         }
     }
     
-    // --- основная функция получения данных с API ---
     async function fetchFuelData() {
-        // предотвращаем одновременные множественные вызовы
         if (isFetching) return;
         isFetching = true;
         
-        // перед запросом отображаем лоадер, но только если в контейнере нет карточек (чтобы не моргать)
         const hasCards = fuelGridContainer.children.length > 0 && !fuelGridContainer.querySelector('.loader');
         if (!hasCards) {
             showLoadingState();
@@ -391,14 +343,13 @@
         
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд таймаут
-            
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            // Замените URL на адрес вашего прокси-сервера
             const response = await fetch('https://guller.ru/api/fuel', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
                 signal: controller.signal
             });
-            
             clearTimeout(timeoutId);
             
             if (!response.ok) {
@@ -407,36 +358,27 @@
             
             const jsonData = await response.json();
             
-            // проверяем структуру согласно ТЗ: data.fuel_types, data.out_of_stock_message
             if (!jsonData || typeof jsonData !== 'object') {
                 throw new Error('Неверный формат ответа сервера');
             }
             
             const fuelTypesArray = jsonData.data?.fuel_types;
-            const outOfStockMsg = jsonData.data?.out_of_stock_message || null;
+            // Новое поле: wait.message
+            const waitMsg = jsonData.data?.wait?.message || null;
             
-            // СЛУЧАЙ 1: fuel_types НЕ ПУСТОЙ (массив существует и длина > 0)
             if (fuelTypesArray && Array.isArray(fuelTypesArray) && fuelTypesArray.length > 0) {
-                // убираем сообщение о пустом стоке, если было активно
                 hideEmptyState();
-                
-                // собираем Set доступных кодов из ответа
                 const availableCodes = new Set();
                 for (let item of fuelTypesArray) {
                     if (item && item.code) {
                         availableCodes.add(item.code);
                     }
                 }
-                
-                // рисуем плашки: для каждого из 5 эталонных видов определяем наличие
                 renderFuelCards(availableCodes);
                 setStatusMessage(`актуально · ${new Date().toLocaleTimeString()}`);
-            } 
-            // СЛУЧАЙ 2: fuel_types ПУСТОЙ (null, undefined или пустой массив)
-            else {
-                // если массив пустой или отсутствует, показываем out_of_stock_message
-                const msgToShow = outOfStockMsg && outOfStockMsg.trim() !== "" 
-                    ? outOfStockMsg 
+            } else {
+                const msgToShow = waitMsg && waitMsg.trim() !== "" 
+                    ? waitMsg 
                     : "Топливо временно отсутствует. Пожалуйста, зайдите позже.";
                 showEmptyState(msgToShow);
                 setStatusMessage(`нет кодов · ${new Date().toLocaleTimeString()}`);
@@ -451,11 +393,7 @@
                 errorMsg = `Сервер вернул ошибку. `;
             }
             errorMsg += 'Повторная попытка через ' + (intervalInput.value || 10) + ' сек.';
-            
-            // В случае ошибки не трогаем плашки кардинально, но показываем сообщение статуса,
-            // при этом если ранее были карточки — оставляем их, чтобы не пропадали данные
             setStatusMessage(`⚠️ ${errorMsg}`, true);
-            // но если контейнер пуст (ничего не отрисовано), показываем сообщение о проблеме
             if (fuelGridContainer.innerHTML.trim() === '' || fuelGridContainer.querySelector('.loader')) {
                 fuelGridContainer.innerHTML = `<div class="loader"><span style="color:#bc3f2e;">🔌 Не удалось загрузить данные. Проверьте соединение.</span></div>`;
             }
@@ -464,18 +402,13 @@
         }
     }
     
-    // --- функция запуска / перезапуска таймера (смена частоты обновления)---
     function startPolling(intervalSeconds) {
         if (currentIntervalId) {
             clearInterval(currentIntervalId);
             currentIntervalId = null;
         }
         if (!intervalSeconds || intervalSeconds < 1) intervalSeconds = 10;
-        
-        // моментально выполняем первый запрос (чтобы сразу увидеть UI)
         fetchFuelData();
-        
-        // запускаем периодический опрос
         currentIntervalId = setInterval(() => {
             fetchFuelData();
         }, intervalSeconds * 1000);
@@ -494,27 +427,16 @@
         startPolling(newInterval);
     }
     
-    // --- обработчик изменения частоты вручную ---
     function onIntervalChange() {
         restartPolling();
     }
     
-    // --- инициализация страницы, слушатели событий ---
     function init() {
-        // установка значений по умолчанию
         intervalInput.value = 10;
-        
-        // подписка на изменение инпута
         intervalInput.addEventListener('change', onIntervalChange);
-        
-        // старт polling с интервалом по умолчанию (10 сек)
         startPolling(10);
-        
-        // дополнительная защита: если вкладка неактивна, но интервал продолжает работать нормально
-        // плюс: при перезагрузке страницы не дублируем
     }
     
-    // запускаем всё после полной загрузки DOM
     window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
