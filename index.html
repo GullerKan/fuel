@@ -393,7 +393,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд таймаут
             
-            const response = await fetch('http://fuel.sevtech.org/fuel/qr/fuel-types', {
+            const response = await fetch('http://91.227.68.184:3000/api/fuel', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
                 signal: controller.signal
