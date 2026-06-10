@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Мониторинг наличия топлива</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(145deg, #f0f4fa 0%, #e6ecf3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        /* основная карточка */
+        .dashboard {
+            max-width: 1300px;
+            width: 100%;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(2px);
+            border-radius: 56px;
+            padding: 28px 32px 40px;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.6);
+            transition: all 0.2s ease;
+        }
+
+        /* шапка: заголовок + панель управления */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1f2b3c, #2c3e4e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1::before {
+            content: "⛽";
+            font-size: 2rem;
+            background: none;
+            -webkit-background-clip: unset;
+            color: #2c5f2d;
+        }
+
+        .control-panel {
+            background: rgba(255,255,255,0.7);
+            border-radius: 48px;
+            padding: 8px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 18px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .refresh-rate {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            font-weight: 500;
+            color: #1e2a36;
+        }
+
+        .refresh-rate label {
+            font-size: 0.9rem;
+            letter-spacing: 0.3px;
+        }
+
+        #intervalInput {
+            width: 85px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            border: none;
+            border-radius: 40px;
+            background: white;
+            box-shadow: inset 0 1px 3px #0001, 0 1px 2px white;
+            font-family: monospace;
+        }
+
+        .interval-unit {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2c3e4e;
+        }
+
+        .status-badge {
+            background: #2c5f2d20;
+            padding: 6px 16px;
+            border-radius: 32px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #1f543f;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge span:first-child {
+            font-weight: 400;
+            opacity: 0.7;
+        }
+
+        /* сетка плашек  */
+        .fuel-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 28px;
+            margin: 40px 0 30px;
+            transition: all 0.2s;
+        }
+
+        /* карточка топлива */
+        .fuel-card {
+            flex: 1;
+            min-width: 160px;
+            max-width: 210px;
+            background: white;
+            border-radius: 42px;
+            padding: 24px 12px 20px;
+            text-align: center;
+            box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+            cursor: default;
+            border: 1px solid rgba(255,255,255,0.4);
+            backdrop-filter: blur(2px);
+        }
+
+        /* зелёная тема (в наличии) */
+        .fuel-card.in-stock {
+            background: linear-gradient(145deg, #d9f0da, #c2e2c3);
+            border-bottom: 5px solid #2c7840;
+            color: #1a4a2a;
+        }
+
+        /* красная тема (закончился) */
+        .fuel-card.out-of-stock {
+            background: linear-gradient(145deg, #ffe1de, #ffcdc8);
+            border-bottom: 5px solid #bc3f2e;
+            color: #751f0f;
+        }
+
+        .fuel-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .fuel-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: rgba(0,0,0,0.05);
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 50px;
+            backdrop-filter: blur(2px);
+        }
+
+        /* сообщение об отсутствии кодов */
+        .out-of-stock-message {
+            background: #fff3e0;
+            border-left: 8px solid #e67e22;
+            border-radius: 36px;
+            padding: 28px 32px;
+            margin: 30px 0;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #a5571a;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.03);
+            backdrop-filter: blur(4px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* лоадер */
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 20px auto;
+            color: #2c5f2d;
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #cbd5e1;
+            border-top-color: #2c5f2d;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 34px;
+            color: #5f6c7a;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding-top: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .dashboard {
+                padding: 20px;
+            }
+            .fuel-card {
+                min-width: 130px;
+            }
+            .fuel-title {
+                font-size: 1.5rem;
+            }
+            .control-panel {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="header">
+        <h1>Наличие топлива · QR-коды</h1>
+        <div class="control-panel">
+            <div class="refresh-rate">
+                <label>🔄 Обновлять каждые</label>
+                <input type="number" id="intervalInput" value="10" min="2" max="300" step="1">
+                <span class="interval-unit">секунд</span>
+            </div>
+            <div class="status-badge" id="liveStatusBadge">
+                <span>⏳ статус:</span>
+                <span id="statusText">ожидание данных</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- контейнер для плашек (5 видов топлива) -->
+    <div id="fuelGridContainer" class="fuel-grid">
+        <!-- динамически заполняется JS -->
+        <div class="loader"><div class="spinner"></div><span>Загрузка данных о топливе...</span></div>
+    </div>
+
+    <!-- блок для out_of_stock_message (если fuel_types пустой) -->
+    <div id="outOfStockMsgContainer" class="out-of-stock-message hidden"></div>
+
+    <footer>
+        ⚡ данные в реальном времени · сервис мониторинга топлива
+    </footer>
+</div>
+
+<script>
+    // эталонный список всех 5 типов топлива (согласно заданию)
+    const ALL_FUEL_TYPES = [
+        { code: "dt", title: "ДТ" },
+        { code: "dt_plus", title: "ДТ+" },
+        { code: "a92", title: "А92" },
+        { code: "a95", title: "А95" },
+        { code: "a95_plus", title: "A95+" }
+    ];
+
+    // глобальные переменные
+    let currentIntervalId = null;
+    let isFetching = false;
+
+    // DOM элементы
+    const fuelGridContainer = document.getElementById('fuelGridContainer');
+    const outOfStockMsgDiv = document.getElementById('outOfStockMsgContainer');
+    const statusTextSpan = document.getElementById('statusText');
+    const intervalInput = document.getElementById('intervalInput');
+
+    // --- вспомогательные функции отрисовки ---
+    function renderFuelCards(availableCodesSet) {
+        // availableCodesSet — Set с кодами видов топлива, которые пришли с бэка (не пустой fuel_types)
+        // строим все 5 карточек
+        const fragment = document.createDocumentFragment();
+        
+        for (let fuel of ALL_FUEL_TYPES) {
+            const isAvailable = availableCodesSet.has(fuel.code);
+            const card = document.createElement('div');
+            card.className = `fuel-card ${isAvailable ? 'in-stock' : 'out-of-stock'}`;
+            
+            const titleSpan = document.createElement('div');
+            titleSpan.className = 'fuel-title';
+            titleSpan.textContent = fuel.title;
+            
+            const statusSpan = document.createElement('div');
+            statusSpan.className = 'fuel-status';
+            if (isAvailable) {
+                statusSpan.textContent = '✅ В наличии';
+                statusSpan.style.background = '#2e7d3230';
+            } else {
+                statusSpan.textContent = '❌ Закончился';
+                statusSpan.style.background = '#c73f1f30';
+            }
+            
+            card.appendChild(titleSpan);
+            card.appendChild(statusSpan);
+            fragment.appendChild(card);
+        }
+        
+        // очищаем и добавляем новые карточки
+        fuelGridContainer.innerHTML = '';
+        fuelGridContainer.appendChild(fragment);
+    }
+    
+    function showEmptyState(outOfStockMessage) {
+        // прячем плашки (очищаем контейнер) и показываем сообщение out_of_stock_message
+        fuelGridContainer.innerHTML = '';
+        // если сообщение есть — отображаем, иначе стандартное
+        const finalMsg = outOfStockMessage && outOfStockMessage.trim() !== "" 
+            ? outOfStockMessage 
+            : "На данный момент QR-коды на топливо отсутствуют. Информация скоро обновится.";
+        outOfStockMsgDiv.textContent = finalMsg;
+        outOfStockMsgDiv.classList.remove('hidden');
+    }
+    
+    function hideEmptyState() {
+        outOfStockMsgDiv.classList.add('hidden');
+        outOfStockMsgDiv.textContent = '';
+    }
+    
+    function showLoadingState() {
+        // отображаем скелетон/лоадер в контейнере плашек (если нет данных)
+        fuelGridContainer.innerHTML = `<div class="loader"><div class="spinner"></div><span>Обновление данных...</span></div>`;
+        // также скрываем сообщение об отсутствии, т.к. идёт загрузка
+        outOfStockMsgDiv.classList.add('hidden');
+        statusTextSpan.textContent = 'загрузка...';
+    }
+    
+    function setStatusMessage(message, isError = false) {
+        statusTextSpan.textContent = message;
+        const badge = document.getElementById('liveStatusBadge');
+        if (isError) {
+            badge.style.background = "#ffddd6";
+            badge.style.color = "#b13e2a";
+        } else {
+            badge.style.background = "#2c5f2d20";
+            badge.style.color = "#1f543f";
+        }
+    }
+    
+    // --- основная функция получения данных с API ---
+    async function fetchFuelData() {
+        // предотвращаем одновременные множественные вызовы
+        if (isFetching) return;
+        isFetching = true;
+        
+        // перед запросом отображаем лоадер, но только если в контейнере нет карточек (чтобы не моргать)
+        const hasCards = fuelGridContainer.children.length > 0 && !fuelGridContainer.querySelector('.loader');
+        if (!hasCards) {
+            showLoadingState();
+        }
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд таймаут
+            
+            const response = await fetch('http://fuel.sevtech.org/fuel/qr/fuel-types', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} ${response.statusText}`);
+            }
+            
+            const jsonData = await response.json();
+            
+            // проверяем структуру согласно ТЗ: data.fuel_types, data.out_of_stock_message
+            if (!jsonData || typeof jsonData !== 'object') {
+                throw new Error('Неверный формат ответа сервера');
+            }
+            
+            const fuelTypesArray = jsonData.data?.fuel_types;
+            const outOfStockMsg = jsonData.data?.out_of_stock_message || null;
+            
+            // СЛУЧАЙ 1: fuel_types НЕ ПУСТОЙ (массив существует и длина > 0)
+            if (fuelTypesArray && Array.isArray(fuelTypesArray) && fuelTypesArray.length > 0) {
+                // убираем сообщение о пустом стоке, если было активно
+                hideEmptyState();
+                
+                // собираем Set доступных кодов из ответа
+                const availableCodes = new Set();
+                for (let item of fuelTypesArray) {
+                    if (item && item.code) {
+                        availableCodes.add(item.code);
+                    }
+                }
+                
+                // рисуем плашки: для каждого из 5 эталонных видов определяем наличие
+                renderFuelCards(availableCodes);
+                setStatusMessage(`актуально · ${new Date().toLocaleTimeString()}`);
+            } 
+            // СЛУЧАЙ 2: fuel_types ПУСТОЙ (null, undefined или пустой массив)
+            else {
+                // если массив пустой или отсутствует, показываем out_of_stock_message
+                const msgToShow = outOfStockMsg && outOfStockMsg.trim() !== "" 
+                    ? outOfStockMsg 
+                    : "Топливо временно отсутствует. Пожалуйста, зайдите позже.";
+                showEmptyState(msgToShow);
+                setStatusMessage(`нет кодов · ${new Date().toLocaleTimeString()}`);
+            }
+            
+        } catch (error) {
+            console.error('Ошибка при запросе fuel-types:', error);
+            let errorMsg = 'Ошибка сети. ';
+            if (error.name === 'AbortError') {
+                errorMsg = 'Сервер не отвечает (таймаут). ';
+            } else if (error.message.includes('HTTP')) {
+                errorMsg = `Сервер вернул ошибку. `;
+            }
+            errorMsg += 'Повторная попытка через ' + (intervalInput.value || 10) + ' сек.';
+            
+            // В случае ошибки не трогаем плашки кардинально, но показываем сообщение статуса,
+            // при этом если ранее были карточки — оставляем их, чтобы не пропадали данные
+            setStatusMessage(`⚠️ ${errorMsg}`, true);
+            // но если контейнер пуст (ничего не отрисовано), показываем сообщение о проблеме
+            if (fuelGridContainer.innerHTML.trim() === '' || fuelGridContainer.querySelector('.loader')) {
+                fuelGridContainer.innerHTML = `<div class="loader"><span style="color:#bc3f2e;">🔌 Не удалось загрузить данные. Проверьте соединение.</span></div>`;
+            }
+        } finally {
+            isFetching = false;
+        }
+    }
+    
+    // --- функция запуска / перезапуска таймера (смена частоты обновления)---
+    function startPolling(intervalSeconds) {
+        if (currentIntervalId) {
+            clearInterval(currentIntervalId);
+            currentIntervalId = null;
+        }
+        if (!intervalSeconds || intervalSeconds < 1) intervalSeconds = 10;
+        
+        // моментально выполняем первый запрос (чтобы сразу увидеть UI)
+        fetchFuelData();
+        
+        // запускаем периодический опрос
+        currentIntervalId = setInterval(() => {
+            fetchFuelData();
+        }, intervalSeconds * 1000);
+    }
+    
+    function restartPolling() {
+        let newInterval = parseInt(intervalInput.value, 10);
+        if (isNaN(newInterval) || newInterval < 2) {
+            newInterval = 2;
+            intervalInput.value = 2;
+        }
+        if (newInterval > 300) {
+            newInterval = 300;
+            intervalInput.value = 300;
+        }
+        startPolling(newInterval);
+    }
+    
+    // --- обработчик изменения частоты вручную ---
+    function onIntervalChange() {
+        restartPolling();
+    }
+    
+    // --- инициализация страницы, слушатели событий ---
+    function init() {
+        // установка значений по умолчанию
+        intervalInput.value = 10;
+        
+        // подписка на изменение инпута
+        intervalInput.addEventListener('change', onIntervalChange);
+        
+        // старт polling с интервалом по умолчанию (10 сек)
+        startPolling(10);
+        
+        // дополнительная защита: если вкладка неактивна, но интервал продолжает работать нормально
+        // плюс: при перезагрузке страницы не дублируем
+    }
+    
+    // запускаем всё после полной загрузки DOM
+    window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
